@@ -1,9 +1,14 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component } from '@angular/core';
 
 interface Cell {
   x: number;
   y: number;
   isMarked: boolean;
+}
+
+interface Rectangle {
+  width: number;
+  height: number;
 }
 
 @Component({
@@ -13,19 +18,72 @@ interface Cell {
 })
 export class InfiniteGridComponent {
   cells: Cell[][] = [];
-
   viewportWidth = 20;
   viewportHeight = 20;
   cellSize = 20;
   offsetX = 0;
   offsetY = 0;
   markedCells: Set<string> = new Set();
+  rectangleSize: Rectangle | null = null;
 
   constructor() {
     this.initializeGrid();
   }
 
-  ngOnInit() {
+  onCellClick(cell: Cell): void {
+    const key = `${cell.x},${cell.y}`;
+
+    if (this.markedCells.has(key)) {
+      this.markedCells.delete(key);
+    } else if (this.markedCells.size === 0 || this.isAdjacentToMarkedCell(cell)) {
+      this.markedCells.add(key);
+    }
+
+    this.initializeGrid();
+    this.checkRectangle();
+  }
+
+  private isAdjacentToMarkedCell(cell: Cell): boolean {
+    const adjacentPositions = [
+      { x: cell.x - 1, y: cell.y },
+      { x: cell.x + 1, y: cell.y },
+      { x: cell.x, y: cell.y - 1 },
+      { x: cell.x, y: cell.y + 1 },
+      { x: cell.x - 1, y: cell.y - 1 },
+      { x: cell.x + 1, y: cell.y - 1 },
+      { x: cell.x - 1, y: cell.y + 1 },
+      { x: cell.x + 1, y: cell.y + 1 }
+    ];
+
+    return adjacentPositions.some(pos =>
+      this.markedCells.has(`${pos.x},${pos.y}`)
+    );
+  }
+
+  private checkRectangle(): void {
+    if (this.markedCells.size === 0) {
+      this.rectangleSize = null;
+      return;
+    }
+
+    // Get all marked coordinates
+    const coordinates = Array.from(this.markedCells).map(key => {
+      const [x, y] = key.split(',').map(Number);
+      return { x, y };
+    });
+
+    // Find bounds
+    const minX = Math.min(...coordinates.map(c => c.x));
+    const maxX = Math.max(...coordinates.map(c => c.x));
+    const minY = Math.min(...coordinates.map(c => c.y));
+    const maxY = Math.max(...coordinates.map(c => c.y));
+
+    const width = maxX - minX + 1;
+    const height = maxY - minY + 1;
+
+    const isRectangle = coordinates.length === width * height;
+
+    this.rectangleSize = isRectangle ? { width, height } : null;
   }
 
   private initializeGrid(): void {
@@ -42,34 +100,6 @@ export class InfiniteGridComponent {
         });
       }
       this.cells.push(row);
-    }
-  }
-
-  onCellClick(cell: Cell): void {
-    const key = `${cell.x},${cell.y}`;
-    if (this.markedCells.has(key)) {
-      this.markedCells.delete(key);
-    } else {
-      this.markedCells.add(key);
-    }
-    this.initializeGrid(); // Refresh the grid to update marked states
-  }
-
-  @HostListener('window:scroll', ['$event'])
-  onScroll(): void {
-    const container = document.querySelector('.grid-container');
-    if (container) {
-      const scrollLeft = container.scrollLeft;
-      const scrollTop = container.scrollTop;
-
-      const newOffsetX = Math.floor(scrollLeft / this.cellSize);
-      const newOffsetY = Math.floor(scrollTop / this.cellSize);
-
-      if (newOffsetX !== this.offsetX || newOffsetY !== this.offsetY) {
-        this.offsetX = newOffsetX;
-        this.offsetY = newOffsetY;
-        this.initializeGrid();
-      }
     }
   }
 }
