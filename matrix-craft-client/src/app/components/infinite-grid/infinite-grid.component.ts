@@ -1,9 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, ViewChild } from '@angular/core';
+import { MatMenuTrigger } from '@angular/material/menu';
 
 interface Cell {
   x: number;
   y: number;
   isMarked: boolean;
+  value?: number;
 }
 
 interface Rectangle {
@@ -17,6 +19,7 @@ interface Rectangle {
   styleUrls: ['./infinite-grid.component.css']
 })
 export class InfiniteGridComponent {
+  @ViewChild(MatMenuTrigger) menuTrigger!: MatMenuTrigger;
   cells: Cell[][] = [];
   viewportWidth = 20;
   viewportHeight = 20;
@@ -35,29 +38,24 @@ export class InfiniteGridComponent {
 
     if (this.markedCells.has(key)) {
       this.markedCells.delete(key);
-    } else if (this.markedCells.size === 0 || this.isAdjacentToMarkedCell(cell)) {
+      cell.value = undefined;
+    } else {
       this.markedCells.add(key);
+      cell.value = Math.floor(Math.random() * 10) + 1; // Random number 1-10
     }
 
     this.initializeGrid();
     this.checkRectangle();
+
   }
 
-  private isAdjacentToMarkedCell(cell: Cell): boolean {
-    const adjacentPositions = [
-      { x: cell.x - 1, y: cell.y },
-      { x: cell.x + 1, y: cell.y },
-      { x: cell.x, y: cell.y - 1 },
-      { x: cell.x, y: cell.y + 1 },
-      { x: cell.x - 1, y: cell.y - 1 },
-      { x: cell.x + 1, y: cell.y - 1 },
-      { x: cell.x - 1, y: cell.y + 1 },
-      { x: cell.x + 1, y: cell.y + 1 }
-    ];
-
-    return adjacentPositions.some(pos =>
-      this.markedCells.has(`${pos.x},${pos.y}`)
-    );
+  onRightClick(event: MouseEvent, cell: Cell): void {
+    event.preventDefault();
+    event.stopPropagation();
+    if (this.rectangleSize) {
+      this.menuTrigger.menuData = { cell };
+      this.menuTrigger.openMenu();
+    }
   }
 
   private checkRectangle(): void {
@@ -93,13 +91,16 @@ export class InfiniteGridComponent {
       for (let x = 0; x < this.viewportWidth; x++) {
         const absoluteX = x + this.offsetX;
         const absoluteY = y + this.offsetY;
+        const key = `${absoluteX},${absoluteY}`;
         row.push({
           x: absoluteX,
           y: absoluteY,
-          isMarked: this.markedCells.has(`${absoluteX},${absoluteY}`)
+          isMarked: this.markedCells.has(key),
+          value: this.markedCells.has(key) ? Math.floor(Math.random() * 10) + 1 : undefined
         });
       }
       this.cells.push(row);
     }
   }
+
 }

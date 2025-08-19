@@ -7,8 +7,18 @@
       <div class="cell"
            *ngFor="let cell of row"
            [class.marked]="cell.isMarked"
-           (click)="onCellClick(cell)">
+           (click)="onCellClick(cell)"
+           (contextmenu)="onRightClick($event, cell)"
+           [matMenuTriggerFor]="menu"
+            >
+        {{cell.value}}
       </div>
     </div>
   </div>
 </div>
+
+<mat-menu #menu="matMenu">
+  <button mat-menu-item>Multiply by scale</button>
+  <button mat-menu-item>Transpose</button>
+  <button mat-menu-item>Inverse</button>
+</mat-menu>
